@@ -90,6 +90,7 @@ reload_tor() {
 }
 
 banner() {
+  [ -n "$HIDE" ] && return
   cat << EOF
     ▗▖                 █
     ▐▌                 ▀   ▐▌
@@ -111,6 +112,7 @@ display_help() {
   doption "-i, --interface" "Name of the interface to change"
   doption "-d, --dhcpcd" "Reload dhcpcd after the change"
   doption "-t, --tor" "Reload tor after the change"
+  doption "-n, --no-banner" "Hide the useless banner :)"
   doption "-h, --help" "Display this message"
   exit 0
 }
@@ -131,6 +133,7 @@ options() {
       -r | --random) random_mac ; shift ;;
       -d | --dhcpcd) DHCPCD=true ; shift ;;
       -t | --tor) TOR=true ; shift ;;
+      -n | --no-banner) HIDE=true ; shift ;;
       -h | --help) display_help ; shift ;;
       *)
         printf "\\n%s\\n" "$0: Invalid argument"
