@@ -23,10 +23,17 @@ save_origin() {
   head
   origin=$(ip link show "$net" | grep -i ether | awk '{print $2}')
   [ -d $CONF ] || die "please, install the program with 'make install'"
-  sudo sh -c "[ -f $CONF/origin_\"$net\" ] || {
-    echo \"origin $origin saved for $net\"
-    echo \"$origin\" > \"$CONF/origin_$net\"
-  }"
+  if [ "$(id -u)" -eq 0 ] ; then
+    [ -f $CONF/origin_"$net" ] || {
+      echo "origin $origin saved for $net"
+      echo "$origin" > "$CONF/origin_$net"
+    }
+  else
+    sudo sh -c "[ -f $CONF/origin_\"$net\" ] || {
+      echo \"origin $origin saved for $net\"
+      echo \"$origin\" > \"$CONF/origin_$net\"
+    }"
+  fi
 }
 
 # Solution to create a valid address
@@ -42,27 +49,44 @@ random_mac() {
 
 apply() {
   if [ -n "$mac" ] ; then
-    sudo ip link set dev "$net" down
+    com="sudo ip"
+    [ "$(id -u)" -eq 0 ] && com="ip"
+
+    $com link set dev "$net" down
     sleep 1
-    sudo ip link set dev "$net" address "$mac"
-    sudo ip link set dev "$net" up
-    sleep 1
+    $com link set dev "$net" address "$mac"
+    $com link set dev "$net" up
     echo "Changed MAC $origin to $mac"
   fi
 }
 
 kill_dhcpcd() {
-  pgrep -x dhcpcd | xargs sudo kill -9
+  if pid=$(pgrep -x dhcpcd 2>/dev/null) ; then
+    if [ "$(id -u)" -eq 0 ] ; then
+      kill -9 "$pid"
+    else
+      sudo kill -9 "$pid"
+    fi
+  fi
+}
+
+reload_service() {
+  if hash "$1" 2>/dev/null ; then
+    echo "Reload $1..."
+    if [ "$(id -u)" -eq 0 ] ; then
+      systemctl restart "$1"
+    else
+      sudo systemctl restart "$1"
+    fi
+  fi
 }
 
 reload_dhcpcd() {
-  echo "Reload dhcpcd..."
-  sudo systemctl restart dhcpcd
+  reload_service dhcpcd
 }
 
 reload_tor() {
-  echo "Reload tor..."
-  sudo systemctl restart tor
+  reload_service tor
 }
 
 banner() {
@@ -125,6 +149,7 @@ main() {
   apply
   [ -n "$DHCPCD" ] && reload_dhcpcd
   [ -n "$TOR" ] && reload_tor
+  exit 0
 }
 
 main "$@"
