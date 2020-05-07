@@ -61,12 +61,12 @@ apply() {
 }
 
 kill_dhcpcd() {
-  if pid=$(pgrep -x dhcpcd 2>/dev/null) ; then
-    if [ "$(id -u)" -eq 0 ] ; then
-      kill -9 "$pid"
-    else
-      sudo kill -9 "$pid"
-    fi
+  cmd="sudo kill -9"
+  [ "$(id -u)" -eq 0 ] && cmd="kill -9"
+  if pids=$(pgrep -x dhcpcd) ; then
+    for pid in $pids ; do
+      $cmd "$pid" >/dev/null
+    done
   fi
 }
 
