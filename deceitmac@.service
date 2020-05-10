@@ -1,7 +1,7 @@
 [Unit]
 Description=MAC Address Change %I
 Wants=network-pre.target
-Before=network-pre.target
+Before=network-pre.target dhcpcd.service
 BindsTo=sys-subsystem-net-devices-%i.device
 After=sys-subsystem-net-devices-%i.device
 
